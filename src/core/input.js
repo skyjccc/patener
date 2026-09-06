@@ -142,9 +142,15 @@ export const input = {
       return null;
     };
 
+    // 只接管落在画布上的触摸;落在 DOM 控件(菜单按钮等)上的触摸不拦截,
+    // 否则 preventDefault 会抑制 click 合成,手机端所有按钮都会失灵
+    const isGameTouch = e => e.target === canvas;
+
     const onDown = e => {
+      if (!isGameTouch(e)) return;
       e.preventDefault();
       this.touchMode = true;
+      this.anyPress = true;
       for (const t of e.changedTouches) {
         const pid = pidOf(t.clientX);
         const btn = hitButton(pid, t.clientX, t.clientY);
@@ -159,6 +165,7 @@ export const input = {
       }
     };
     const onMove = e => {
+      if (!isGameTouch(e)) return;
       e.preventDefault();
       for (const t of e.changedTouches)
         for (let pid = 0; pid < 2; pid++) {
@@ -167,6 +174,7 @@ export const input = {
         }
     };
     const onUp = e => {
+      if (!isGameTouch(e)) return;
       e.preventDefault();
       for (const t of e.changedTouches)
         for (let pid = 0; pid < 2; pid++) {
