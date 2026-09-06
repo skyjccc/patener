@@ -2,7 +2,7 @@
 import {
   P_W, P_H, RUN_SPEED, ACCEL_GROUND, ACCEL_AIR, FRICTION_GROUND, FRICTION_AIR,
   GRAVITY, FALL_MAX, JUMP_V, DJUMP_V, BOOST_V, DASH_V, DASH_TIME, DASH_CD,
-  COYOTE, JUMP_BUFFER, JUMP_CUT, INVULN_TIME, LIE_W, LIE_H, LIE_HOLD,
+  COYOTE, JUMP_BUFFER, JUMP_CUT, INVULN_TIME, LIE_W, LIE_H, LIE_HOLD, ICE_FRICTION,
 } from './constants.js';
 import { clamp, damp, rand, TAU, roundedRect } from '../core/utils.js';
 import * as particles from '../core/particles.js';
@@ -131,8 +131,8 @@ export class Player {
     } else {
       // ---- 水平移动(冰面打滑:加速慢、几乎无摩擦) ----
       const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
-      const accel = this.grounded ? (this.onIce ? ACCEL_GROUND * 0.55 : ACCEL_GROUND) : ACCEL_AIR;
-      const fric = this.grounded ? (this.onIce ? FRICTION_GROUND * 0.045 : FRICTION_GROUND) : FRICTION_AIR;
+      const accel = this.grounded ? (this.onIce ? ACCEL_GROUND * 0.4 : ACCEL_GROUND) : ACCEL_AIR;
+      const fric = this.grounded ? (this.onIce ? FRICTION_GROUND * ICE_FRICTION : FRICTION_GROUND) : FRICTION_AIR;
       if (dir !== 0) {
         this.vx += dir * accel * dt;
         this.face = dir;

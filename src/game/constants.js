@@ -10,6 +10,7 @@ export const FRICTION_GROUND = 2400;
 export const FRICTION_AIR = 350;
 export const GRAVITY = 2300;
 export const FALL_MAX = 900;
+export const ICE_FRICTION = 0.22; // 冰面摩擦系数(能停住但依然滑)
 export const JUMP_V = 760;        // 普通跳 ≈ 3.9 格高 / 4~5 格远
 export const DJUMP_V = 680;       // 阿蓝二段跳(总高 ≈ 7 格)
 export const BOOST_V = 1060;      // 踩伙伴头起跳(≈ 7 格,配合前冲可跨 8 格)
