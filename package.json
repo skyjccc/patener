@@ -1,0 +1,17 @@
+{
+  "name": "patener",
+  "version": "1.0.0",
+  "description": "双人同屏合作闯关手游(灵感来自《双人成行》《Pico Park》)。 一名玩家左手控制 **1P 阿橙(冲刺)**,另一名玩家右手控制 **2P 阿蓝(二段跳)**, 两人配合解谜、越过陷阱,一起到达终点之门才能过关。",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node tools/check-levels.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "ws": "^8.21.3"
+  }
+}

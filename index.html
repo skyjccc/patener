@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1b2033">
+<title>拍档大冒险 · 双人同屏闯关</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>">
+<style>
+  :root {
+    --orange: #ff8a3d;
+    --blue: #3dc8ff;
+    --yellow: #ffd23d;
+    --ink: #23283f;
+    --paper: #ffffff;
+    --ui-font: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden; position: fixed;
+    background: #1b2033; font-family: var(--ui-font);
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    overscroll-behavior: none;
+  }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* ---------- 屏幕层 ---------- */
+  #ui { position: absolute; inset: 0; pointer-events: none; }
+  .screen {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    opacity: 0; transform: scale(1.04); pointer-events: none;
+    transition: opacity .28s ease, transform .28s cubic-bezier(.2,.9,.3,1.2);
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  .screen.show { opacity: 1; transform: scale(1); pointer-events: auto; }
+  .dim { background: rgba(15, 18, 32, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+
+  /* ---------- 通用控件 ---------- */
+  .btn {
+    font-family: var(--ui-font); font-weight: 700; font-size: 20px; color: #5a3a00;
+    background: linear-gradient(180deg, #ffe066, var(--yellow));
+    border: none; border-radius: 999px; padding: 14px 44px; min-width: 220px;
+    box-shadow: 0 5px 0 #d9a616, 0 10px 24px rgba(0,0,0,.28);
+    cursor: pointer; transition: transform .08s ease, box-shadow .08s ease, filter .15s;
+    letter-spacing: 2px;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #d9a616, 0 4px 10px rgba(0,0,0,.25); }
+  .btn.secondary {
+    color: #eaf0ff; background: rgba(22, 30, 56, .48);
+    box-shadow: 0 4px 0 rgba(9, 12, 24, .35), inset 0 0 0 2px rgba(255,255,255,.18);
+    font-size: 17px; padding: 12px 36px; min-width: 200px;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .btn.secondary:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+  .btn.small { min-width: 0; padding: 10px 26px; font-size: 16px; letter-spacing: 1px; }
+  .btn:disabled { filter: grayscale(.8) brightness(.7); pointer-events: none; }
+
+  .card {
+    background: rgba(255,255,255,.97); border-radius: 24px; padding: 26px 30px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.45); color: var(--ink);
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    max-width: min(560px, 92vw); max-height: 88vh; overflow: auto;
+  }
+  .card h2 { font-size: 26px; letter-spacing: 3px; }
+  .chip {
+    display: inline-block; background: rgba(255,255,255,.16); color: #fff;
+    border-radius: 999px; padding: 6px 18px; font-size: 14px; letter-spacing: 2px;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+
+  /* ---------- 标题屏 ---------- */
+  #screen-title { justify-content: center; gap: 20px; }
+  .logo {
+    font-size: clamp(44px, 9vw, 76px); font-weight: 900; letter-spacing: 8px; color: #fff;
+    text-shadow: 0 4px 0 rgba(0,0,0,.18), 0 12px 30px rgba(0,0,0,.35);
+    display: flex; align-items: center; gap: 10px; line-height: 1;
+  }
+  .logo .oo { color: var(--orange); } .logo .bb { color: var(--blue); }
+  .logo-bob { animation: bob 2.6s ease-in-out infinite; display: inline-block; }
+  @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+  .tagline { font-size: 15px; color: rgba(255,255,255,.85); letter-spacing: 4px; margin-top: -8px; }
+  .title-buttons { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; align-items: center; }
+  .title-p1p2 { display: flex; gap: 26px; margin-top: 6px; }
+  .badge {
+    display: flex; align-items: center; gap: 8px; color: #fff; font-size: 14px; letter-spacing: 1px;
+    background: rgba(0,0,0,.22); border-radius: 999px; padding: 7px 16px;
+  }
+  .dot { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset -2px -3px 0 rgba(0,0,0,.2); }
+  .dot.orange { background: var(--orange); } .dot.blue { background: var(--blue); }
+
+  /* ---------- 选关 ---------- */
+  #level-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 640px; }
+  .lv-card {
+    width: 118px; border-radius: 18px; padding: 12px 8px 10px; cursor: pointer;
+    background: linear-gradient(180deg, #ffffff, #eef2ff); color: var(--ink);
+    box-shadow: 0 4px 0 rgba(35,40,63,.16); border: none; font-family: var(--ui-font);
+    transition: transform .1s ease, box-shadow .1s ease; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .lv-card:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(35,40,63,.16); }
+  .lv-num { font-size: 26px; font-weight: 900; }
+  .lv-name { font-size: 12px; color: #6a7190; letter-spacing: 1px; white-space: nowrap; }
+  .lv-gems { display: flex; gap: 4px; margin-top: 3px; }
+  .lv-gems .g { width: 10px; height: 10px; border-radius: 3px; transform: rotate(45deg); background: #dfe4f2; }
+  .lv-gems .g.on { background: linear-gradient(135deg, #7ef0c9, #2bc98e); }
+  .lv-card.locked { filter: grayscale(1) brightness(.82); pointer-events: none; }
+  .lv-card.locked .lv-num { opacity: .5; }
+  .lv-card .lock { position: absolute; } 
+
+  /* ---------- HUD ---------- */
+  #hud { position: absolute; inset: 0; pointer-events: none; display: none; }
+  #hud.show { display: block; }
+  #hud-level {
+    position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left));
+    color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 2px;
+    background: rgba(10,14,28,.35); padding: 7px 16px; border-radius: 999px;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    display: flex; align-items: center; gap: 10px;
+  }
+  #hud-gems { display: flex; gap: 5px; align-items: center; }
+  #hud-gems .g { width: 11px; height: 11px; border-radius: 3px; transform: rotate(45deg); background: rgba(255,255,255,.25); transition: background .2s, transform .2s; }
+  #hud-gems .g.on { background: linear-gradient(135deg, #7ef0c9, #2bc98e); transform: rotate(45deg) scale(1.15); }
+  #btn-pause {
+    position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right));
+    width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(10,14,28,.35); color: #fff; font-size: 17px;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); pointer-events: auto;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #btn-pause:active { transform: scale(.92); }
+
+  /* ---------- 结算 ---------- */
+  .stats { display: flex; gap: 22px; margin: 4px 0; }
+  .stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .stat b { font-size: 22px; } .stat span { font-size: 12px; color: #8a90a8; letter-spacing: 1px; }
+  .gem-row { display: flex; gap: 10px; }
+  .gem-row .g { width: 22px; height: 22px; border-radius: 6px; transform: rotate(45deg); background: #e4e8f4; }
+  .gem-row .g.on { background: linear-gradient(135deg, #7ef0c9, #2bc98e); box-shadow: 0 2px 8px rgba(43,201,142,.5); }
+  .row-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  /* ---------- 帮助 ---------- */
+  .help-sec { width: 100%; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.7; color: #3c4258; }
+  .help-sec h3 { font-size: 15px; display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+  .ctrl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ctrl-table td { padding: 4px 6px; border-bottom: 1px dashed #e3e7f2; }
+  .ctrl-table td:first-child { white-space: nowrap; font-weight: 700; }
+  kbd {
+    background: #eef1fa; border-radius: 6px; padding: 1px 7px; font-family: inherit;
+    box-shadow: 0 2px 0 #d5daea; font-size: 12px; margin: 0 1px;
+  }
+  .tag-o { color: #e06a1f; font-weight: 800; } .tag-b { color: #1898d8; font-weight: 800; }
+
+  /* ---------- 横屏提示 ---------- */
+  #rotate-overlay {
+    position: fixed; inset: 0; z-index: 99; background: linear-gradient(180deg, #232a4d, #141830);
+    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    color: #fff; font-size: 18px; letter-spacing: 4px; text-align: center;
+  }
+  #rotate-overlay .phone { font-size: 54px; animation: rot 1.8s ease-in-out infinite; }
+  @keyframes rot { 0%,20% { transform: rotate(0) } 55%,100% { transform: rotate(90deg) } }
+  @media (orientation: portrait) { #rotate-overlay { display: flex; } }
+
+  .verse { color: rgba(255,255,255,.55); font-size: 12px; letter-spacing: 2px; }
+  .toast {
+    position: absolute; left: 50%; top: 18%; transform: translateX(-50%);
+    background: rgba(10,14,28,.72); color: #fff; padding: 10px 22px; border-radius: 999px;
+    font-size: 15px; letter-spacing: 2px; opacity: 0; transition: opacity .3s; pointer-events: none;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .toast.show { opacity: 1; }
+
+  /* ---------- 联机 ---------- */
+  .room-code {
+    font-size: 46px; font-weight: 900; letter-spacing: 12px; color: var(--ink);
+    background: #eef1fa; border-radius: 16px; padding: 10px 26px 10px 38px;
+    box-shadow: inset 0 2px 6px rgba(35,40,63,.12);
+  }
+  .net-status { color: #5a6190; font-size: 15px; letter-spacing: 1px; min-height: 22px; }
+  .room-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-height: 260px; overflow: auto; }
+  .room-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #f2f4fb; border-radius: 14px; padding: 12px 18px; border: none;
+    font-family: var(--ui-font); font-size: 16px; font-weight: 700; color: var(--ink); cursor: pointer;
+  }
+  .room-item:active { transform: scale(.98); }
+  .room-item .code { letter-spacing: 4px; color: #e06a1f; }
+  .room-item.empty { justify-content: center; color: #9aa0b8; font-weight: 400; cursor: default; }
+  .mp-wait-tip { color: #8a90a8; font-size: 14px; letter-spacing: 1px; }
+
+  /* ---------- 勋章 / 无尽 HUD ---------- */
+  .medal-row { display: flex; gap: 10px; min-height: 26px; align-items: center; }
+  .medal {
+    font-size: 13px; font-weight: 700; letter-spacing: 1px;
+    padding: 4px 14px; border-radius: 999px;
+    background: #f2f4fb; color: #6a7190;
+  }
+  .medal.gold { background: linear-gradient(135deg, #ffe9a8, #ffd23d); color: #7a5200; box-shadow: 0 2px 6px rgba(255,210,61,.4); }
+  .medal.perfect { background: linear-gradient(135deg, #d5fbef, #7ef0c9); color: #0a6b4a; }
+  #hud-endless {
+    position: absolute; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px; color: #fff; font-weight: 800;
+    background: rgba(10,14,28,.35); padding: 6px 18px; border-radius: 999px; font-size: 16px;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  #hud-hearts { letter-spacing: 2px; }
+  #hud-height { min-width: 52px; text-align: center; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="ui">
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-level"><span id="hud-name">第 1 关</span><span id="hud-gems"></span></div>
+    <div id="hud-endless" style="display:none"><span id="hud-hearts"></span><span id="hud-height">0m</span></div>
+    <button id="btn-pause" aria-label="暂停">❚❚</button>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <!-- 标题 -->
+  <div id="screen-title" class="screen show">
+    <div class="logo"><span class="logo-bob oo">拍</span>档<span class="logo-bob bb">大</span>冒<span class="logo-bob oo">险</span></div>
+    <div class="tagline">双 人 同 屏 · 携 手 闯 关</div>
+    <div class="title-p1p2">
+      <div class="badge"><span class="dot orange"></span>1P 阿橙 · 冲刺</div>
+      <div class="badge"><span class="dot blue"></span>2P 阿蓝 · 二段跳</div>
+    </div>
+    <div class="title-buttons">
+      <button class="btn" id="btn-start">开始冒险</button>
+      <button class="btn secondary" id="btn-net">双机联机 📶</button>
+      <button class="btn secondary" id="btn-endless">🌋 岩浆攀爬(无尽)</button>
+      <button class="btn secondary" id="btn-levels">选择关卡</button>
+      <button class="btn secondary" id="btn-help">玩法说明</button>
+      <button class="btn secondary small" id="btn-sound">♪ 音效 开</button>
+    </div>
+    <div class="verse" id="title-verse">最好玩的双人游戏,是和最好的朋友一起玩</div>
+  </div>
+
+  <!-- 联机 -->
+  <div id="screen-net" class="screen dim">
+    <div class="card">
+      <h2>双机联机</h2>
+      <div class="verse" style="color:#8a90a8">两台手机连同一个 Wi-Fi,各自控制一个角色</div>
+      <div id="net-home" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+        <button class="btn" id="btn-net-create">创建房间(1P 阿橙)</button>
+        <button class="btn secondary" id="btn-net-join">加入房间(2P 阿蓝)</button>
+        <button class="btn secondary small" id="btn-net-back">返回</button>
+      </div>
+      <div id="net-join" style="display:none;flex-direction:column;gap:10px;align-items:center;width:100%">
+        <div id="room-list" class="room-list"></div>
+        <button class="btn secondary small" id="btn-net-join-back">返回</button>
+      </div>
+      <div id="net-wait" style="display:none;flex-direction:column;gap:14px;align-items:center">
+        <div class="room-code" id="net-code">····</div>
+        <div id="net-status" class="net-status">连接中…</div>
+        <button class="btn" id="btn-net-start" disabled>选择关卡开始</button>
+        <button class="btn secondary small" id="btn-net-leave">断开连接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 选关 -->
+  <div id="screen-levels" class="screen dim">
+    <div class="card">
+      <h2>选择关卡</h2>
+      <div id="level-grid"></div>
+      <button class="btn secondary small" id="btn-back-title">返回</button>
+    </div>
+  </div>
+
+  <!-- 帮助 -->
+  <div id="screen-help" class="screen dim">
+    <div class="card">
+      <h2>玩法说明</h2>
+      <div class="help-sec">
+        <h3>🎯 目标</h3>
+        <div>两位小拍档<strong>一起到达终点之门</strong>才能过关。收集水晶、点亮检查点,摔下悬崖或碰到尖刺会回到检查点重生。</div>
+      </div>
+      <div class="help-sec">
+        <h3><span class="dot orange"></span><span class="tag-o">1P 阿橙</span> · 冲刺</h3>
+        <table class="ctrl-table">
+          <tr><td>触屏</td><td>左半边屏幕:左侧摇杆移动,右侧「跳」「冲」「喊」按钮</td></tr>
+          <tr><td>键盘</td><td><kbd>A</kbd><kbd>D</kbd> 移动 · <kbd>W</kbd> 跳跃 · <kbd>S</kbd>+<kbd>W</kbd> 下穿薄板 · <kbd>E</kbd> 冲刺 · <kbd>Q</kbd> 呼喊</td></tr>
+        </table>
+      </div>
+      <div class="help-sec">
+        <h3><span class="dot blue"></span><span class="tag-b">2P 阿蓝</span> · 二段跳</h3>
+        <table class="ctrl-table">
+          <tr><td>触屏</td><td>右半边屏幕:左侧摇杆移动,右侧「跳」「冲」「喊」按钮</td></tr>
+          <tr><td>键盘</td><td><kbd>←</kbd><kbd>→</kbd> 移动 · <kbd>↑</kbd> 跳跃 · <kbd>↓</kbd>+<kbd>↑</kbd> 下穿薄板 · <kbd>/</kbd> 冲刺 · <kbd>.</kbd> 呼喊</td></tr>
+        </table>
+      </div>
+      <div class="help-sec">
+        <h3>🤝 合 作 技 巧</h3>
+        <div>· 跳到伙伴头上再跳,可以<strong>超级跳</strong>越过最大间隙<br>
+        · <strong>长按「喊」趴下变桥</strong>,让伙伴踩着你过尖刺/深沟;按跳弹起<br>
+        · 站上/压住<strong>机关板</strong>开门;标着 ×2 的板要<strong>两人一起站</strong>;木箱能替你压板<br>
+        · <strong>跷跷板</strong>:伙伴压住一端,你趁板翘起时冲上去/跳<br>
+        · <span class="tag-o">阿橙</span>的冲刺可以撞碎<span style="color:#b8874a">裂纹砖</span>,<span class="tag-b">阿蓝</span>能跳上高处<br>
+        · <strong>火焰喷口</strong>闪烁预警后喷火,看准时机;冰面很滑,提前刹车<br>
+        · <strong>蹦床</strong>连续弹跳会充能(×2 ×3…),两人轮流充能能把伙伴弹上天<br>
+        · 卡住了就按「喊」按钮招呼伙伴~</div>
+      </div>
+      <button class="btn small" id="btn-help-ok">知道啦!</button>
+    </div>
+  </div>
+
+  <!-- 暂停 -->
+  <div id="screen-pause" class="screen dim">
+    <div class="card">
+      <h2>暂停一下</h2>
+      <button class="btn" id="btn-resume">继续游戏</button>
+      <div class="row-btns" id="pause-host-btns">
+        <button class="btn secondary small" id="btn-restart">重新开始</button>
+        <button class="btn secondary small" id="btn-pause-levels">选择关卡</button>
+      </div>
+      <div class="row-btns">
+        <button class="btn secondary small" id="btn-pause-music">🎵 音乐 开</button>
+        <button class="btn secondary small" id="btn-pause-sfx">🔊 音效 开</button>
+      </div>
+      <div class="mp-wait-tip" id="pause-mp-tip" style="display:none">联机模式:关卡由房主控制</div>
+    </div>
+  </div>
+
+  <!-- 过关 -->
+  <div id="screen-complete" class="screen dim">
+    <div class="card">
+      <h2 id="complete-title">过关啦!🎉</h2>
+      <div class="medal-row" id="complete-medals"></div>
+      <div class="gem-row" id="complete-gems"></div>
+      <div class="stats">
+        <div class="stat"><b id="stat-time">0:00</b><span>用时</span></div>
+        <div class="stat"><b id="stat-fails">0</b><span>失误</span></div>
+        <div class="stat"><b id="stat-best">-</b><span>最佳</span></div>
+      </div>
+      <div class="row-btns" id="complete-host-btns">
+        <button class="btn" id="btn-next">下一关 →</button>
+      </div>
+      <div class="row-btns" id="complete-host-btns2">
+        <button class="btn secondary small" id="btn-replay">再玩一次</button>
+        <button class="btn secondary small" id="btn-complete-levels">选择关卡</button>
+      </div>
+      <div class="mp-wait-tip" id="complete-mp-wait" style="display:none">🎉 等待房主选择下一步…</div>
+    </div>
+  </div>
+
+  <!-- 无尽模式结算 -->
+  <div id="screen-over" class="screen dim">
+    <div class="card">
+      <h2>🌋 被岩浆追上了!</h2>
+      <div class="stats">
+        <div class="stat"><b id="over-height">0m</b><span>攀登高度</span></div>
+        <div class="stat"><b id="over-gems">0</b><span>水晶</span></div>
+        <div class="stat"><b id="over-best">0m</b><span>历史最佳</span></div>
+      </div>
+      <div id="over-record" class="medal-row" style="display:none"><span class="medal gold">🏆 新纪录!</span></div>
+      <div class="row-btns" id="over-host-btns">
+        <button class="btn" id="btn-over-retry">再来一次!</button>
+      </div>
+      <div class="row-btns">
+        <button class="btn secondary small" id="btn-over-title">返回标题</button>
+      </div>
+      <div class="mp-wait-tip" id="over-mp-wait" style="display:none">等待房主选择…</div>
+    </div>
+  </div>
+
+  <!-- 旋转提示 -->
+  <div id="rotate-overlay">
+    <div class="phone">📱</div>
+    <div>请横屏游玩</div>
+    <div class="verse">双人同屏,横着才尽兴</div>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
